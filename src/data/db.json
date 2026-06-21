@@ -1,0 +1,44 @@
+{
+  "headerState": {
+    "isAnnouncementActive": true,
+    "announcementText": "🔥 Limited Time Offer: Join now and get your first month FREE! 🔥",
+    "heroHeadline": "Where Champions Are Forged",
+    "heroSubtitle": "Train with the best. Push your limits. Dominate the mats.",
+    "heroMediaUrl": "https://cdn.pixabay.com/video/2019/08/25/26359-356133912_large.mp4",
+    "heroMediaType": "video"
+  },
+  "plans": [
+    {
+      "id": 1,
+      "title": "Normal Plan",
+      "price": "$99/mo",
+      "isPopular": false,
+      "coachPhone": "0661234567",
+      "features": "Basic Gym Access\nOpen Mat Sessions\nLocker Room Access"
+    },
+    {
+      "id": 2,
+      "title": "Fighter Plan",
+      "price": "$149/mo",
+      "isPopular": true,
+      "coachPhone": "0661234567",
+      "features": "Full Combat Classes\nCrossFit Access\nBasic Gym Access\nLocker Room Access"
+    },
+    {
+      "id": 3,
+      "title": "VIP/Elite Plan",
+      "price": "$249/mo",
+      "isPopular": false,
+      "coachPhone": "0661234567",
+      "features": "Unlimited Personal Coaching\nFull Combat Classes\nNutrition Plan\nCrossFit Access\nPremium Locker & Towel"
+    }
+  ],
+  "footerState": {
+    "address": "123 Main Street, Algiers, Algeria",
+    "phone": "0661234567",
+    "facebookUrl": "https://facebook.com",
+    "instagramUrl": "https://instagram.com",
+    "tiktokUrl": "https://tiktok.com",
+    "mapEmbedUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d102344.20078864771!2d3.0560293!3d36.7118129!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x128fad1f44e1e827%3A0xcb13e155bc812044!2sAlgiers!5e0!3m2!1sen!2sdz!4v1700000000000!5m2!1sen!2sdz"
+  }
+}
