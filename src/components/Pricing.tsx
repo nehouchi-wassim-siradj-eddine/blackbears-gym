@@ -5,6 +5,8 @@ import React, { useState, useEffect } from "react";
 interface PricingProps {
   isAdminMode: boolean;
   initialPlans?: any[];
+  sectionTitle?: any;
+  locale?: 'en' | 'fr' | 'ar';
 }
 
 const INITIAL_PLANS = [
@@ -34,7 +36,7 @@ const INITIAL_PLANS = [
   }
 ];
 
-export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
+export default function Pricing({ isAdminMode, initialPlans, sectionTitle, locale = 'en' }: PricingProps) {
   const [plans, setPlans] = useState(initialPlans || INITIAL_PLANS);
   
   useEffect(() => {
@@ -43,7 +45,9 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ title: "", price: "", features: "", isPopular: false, coachPhone: "" });
+  const emptyLangState = { en: "", fr: "", ar: "" };
+  const [formData, setFormData] = useState<any>({ title: {...emptyLangState}, price: {...emptyLangState}, features: {...emptyLangState}, isPopular: false, coachPhone: "" });
+  const [editLocale, setEditLocale] = useState<'en'|'fr'|'ar'>('en');
 
   // User Registration State
   const [selectedPlanForRegistration, setSelectedPlanForRegistration] = useState<any | null>(null);
@@ -52,18 +56,21 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
   const openEditModal = (plan: any) => {
     setEditingId(plan.id);
     setFormData({ 
-      title: plan.title, 
-      price: plan.price, 
-      features: plan.features,
+      title: JSON.parse(JSON.stringify(plan.title)), 
+      price: JSON.parse(JSON.stringify(plan.price)), 
+      features: JSON.parse(JSON.stringify(plan.features)),
       isPopular: plan.isPopular,
       coachPhone: plan.coachPhone
     });
+    setEditLocale(locale);
     setIsModalOpen(true);
   };
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ title: "", price: "", features: "", isPopular: false, coachPhone: "" });
+    const emptyLangState = { en: "", fr: "", ar: "" };
+    setFormData({ title: {...emptyLangState}, price: {...emptyLangState}, features: {...emptyLangState}, isPopular: false, coachPhone: "" });
+    setEditLocale(locale);
     setIsModalOpen(true);
   };
 
@@ -104,7 +111,7 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
         
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">
-            Membership <span className="text-red-600">Plans</span>
+            {sectionTitle ? (typeof sectionTitle === 'object' ? sectionTitle[locale] : sectionTitle) : <>Membership <span className="text-red-600">Plans</span></>}
           </h2>
           <div className="w-24 h-1 bg-red-600 mx-auto mt-6"></div>
         </div>
@@ -126,13 +133,13 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
                 </div>
               )}
               
-              <h3 className="text-2xl font-black text-white uppercase mb-2 text-center">{plan.title}</h3>
-              <div className="text-4xl font-black text-red-500 mb-8 text-center">{plan.price}</div>
+              <h3 className="text-2xl font-black text-white uppercase mb-2 text-center">{plan.title?.[locale]}</h3>
+              <div className="text-4xl font-black text-red-500 mb-8 text-center">{plan.price?.[locale]}</div>
               
               <ul className="flex-1 space-y-4 mb-8">
-                {plan.features.split('\n').map((feature, idx) => (
+                {(plan.features?.[locale] || "").split('\n').map((feature: string, idx: number) => (
                   <li key={idx} className="flex items-start text-zinc-300 font-medium">
-                    <svg className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                    <svg className={`w-5 h-5 text-red-500 flex-shrink-0 mt-0.5 ${locale === 'ar' ? 'ml-3' : 'mr-3'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -148,7 +155,7 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
                   }}
                   className={`w-full py-4 rounded font-bold text-lg uppercase tracking-widest transition-colors ${plan.isPopular ? "bg-red-600 text-white hover:bg-red-700 shadow-lg" : "bg-zinc-800 text-white hover:bg-zinc-700"} ${isAdminMode ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  Select Plan
+                  {locale === 'ar' ? 'اختر الخطة' : locale === 'fr' ? 'Choisir ce Plan' : 'Select Plan'}
                 </button>
               </div>
 
@@ -187,15 +194,22 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
                 {editingId ? "Edit Plan" : "Add Plan"}
               </h3>
               
+              {/* Language Edit Tabs */}
+              <div className="flex gap-2 mb-6 border-b border-zinc-800 pb-2">
+                {(['en', 'fr', 'ar'] as const).map(l => (
+                  <button key={l} onClick={() => setEditLocale(l)} className={`px-4 py-2 font-bold uppercase text-xs rounded-t-lg transition-colors ${editLocale === l ? 'bg-zinc-800 text-white border-b-2 border-red-500' : 'text-zinc-500 hover:text-zinc-300'}`}>Editing: {l}</button>
+                ))}
+              </div>
+              
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Plan Title</label>
-                    <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" />
+                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Plan Title ({editLocale})</label>
+                    <input type="text" value={formData.title[editLocale]} onChange={e => setFormData({...formData, title: {...formData.title, [editLocale]: e.target.value}})} className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" dir={editLocale === 'ar' ? 'rtl' : 'ltr'} />
                   </div>
                   <div>
-                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Price</label>
-                    <input type="text" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" />
+                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Price ({editLocale})</label>
+                    <input type="text" value={formData.price[editLocale]} onChange={e => setFormData({...formData, price: {...formData.price, [editLocale]: e.target.value}})} className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" dir={editLocale === 'ar' ? 'rtl' : 'ltr'} />
                   </div>
                 </div>
                 <div>
@@ -203,12 +217,13 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
                   <input type="text" value={formData.coachPhone || ""} onChange={e => setFormData({...formData, coachPhone: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" placeholder="0661234567" />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Features (One per line)</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Features ({editLocale} - One per line)</label>
                   <textarea 
-                    value={formData.features} 
-                    onChange={e => setFormData({...formData, features: e.target.value})} 
+                    value={formData.features[editLocale]} 
+                    onChange={e => setFormData({...formData, features: {...formData.features, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
                     rows={5}
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div className="flex items-center justify-between bg-zinc-950 p-3 rounded border border-zinc-800 mt-4">
@@ -247,7 +262,7 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
                 
                 <h3 className="text-2xl font-black text-white uppercase mb-2 tracking-wide">Take Action</h3>
                 <p className="text-zinc-400 text-sm font-medium mb-8 leading-relaxed">
-                  You're locking in the <span className="text-red-500 font-bold">{selectedPlanForRegistration.title}</span> at <span className="text-white font-bold">{selectedPlanForRegistration.price}</span>. How would you like to connect with the coach?
+                  You're locking in the <span className="text-red-500 font-bold">{selectedPlanForRegistration?.title?.[locale]}</span> at <span className="text-white font-bold">{selectedPlanForRegistration?.price?.[locale]}</span>. How would you like to connect with the coach?
                 </p>
 
                 <div className="space-y-4">
@@ -259,7 +274,7 @@ export default function Pricing({ isAdminMode, initialPlans }: PricingProps) {
                       } else if (phoneClean.startsWith('+0')) {
                         phoneClean = '213' + phoneClean.substring(2);
                       }
-                      const message = `Hi! I want to ask about the ${selectedPlanForRegistration.title}.`;
+                      const message = `Hi! I want to ask about the ${selectedPlanForRegistration?.title?.[locale]}.`;
                       window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
                       setSelectedPlanForRegistration(null);
                     }}

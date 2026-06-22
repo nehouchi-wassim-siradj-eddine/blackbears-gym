@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 interface FooterProps {
   isAdminMode: boolean;
   initialFooter?: any;
+  locale: 'en' | 'fr' | 'ar';
 }
 
 const INITIAL_FOOTER_STATE = {
@@ -16,7 +17,7 @@ const INITIAL_FOOTER_STATE = {
   mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d102344.20078864771!2d3.0560293!3d36.7118129!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x128fad1f44e1e827%3A0xcb13e155bc812044!2sAlgiers!5e0!3m2!1sen!2sdz!4v1700000000000!5m2!1sen!2sdz"
 };
 
-export default function Footer({ isAdminMode, initialFooter }: FooterProps) {
+export default function Footer({ isAdminMode, initialFooter, locale }: FooterProps) {
   const [footerState, setFooterState] = useState(initialFooter || INITIAL_FOOTER_STATE);
   
   useEffect(() => {
@@ -24,10 +25,12 @@ export default function Footer({ isAdminMode, initialFooter }: FooterProps) {
   }, [initialFooter]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ ...INITIAL_FOOTER_STATE });
+  const [formData, setFormData] = useState(initialFooter ? JSON.parse(JSON.stringify(initialFooter)) : JSON.parse(JSON.stringify(INITIAL_FOOTER_STATE)));
+  const [editLocale, setEditLocale] = useState<'en'|'fr'|'ar'>('en');
 
   const handleOpenModal = () => {
-    setFormData({ ...footerState });
+    setFormData(JSON.parse(JSON.stringify(footerState)));
+    setEditLocale(locale);
     setIsModalOpen(true);
   };
 
@@ -66,18 +69,18 @@ export default function Footer({ isAdminMode, initialFooter }: FooterProps) {
             <div className="text-zinc-400 space-y-3 font-medium">
               <p className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-red-600 shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span className="whitespace-pre-line">{footerState.address}</span>
+                <span className="whitespace-pre-line">{typeof footerState?.address === 'object' ? footerState.address[locale] : footerState?.address}</span>
               </p>
               <p className="flex items-center gap-3">
                 <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                {footerState.phone}
+                {typeof footerState?.phone === 'object' ? footerState.phone[locale] : footerState?.phone}
               </p>
             </div>
           </div>
 
           {/* Column 2: Socials */}
           <div className="flex flex-col space-y-6">
-            <h3 className="text-xl font-bold uppercase tracking-widest text-white border-b border-zinc-800 pb-2">Follow Us</h3>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-white border-b border-zinc-800 pb-2">{locale === 'ar' ? 'تابعنا' : locale === 'fr' ? 'Suivez-nous' : 'Follow Us'}</h3>
             <div className="flex gap-4">
               {footerState.facebookUrl && (
                 <a href={footerState.facebookUrl} target="_blank" rel="noreferrer" className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-red-600 hover:border-red-600 transition-all shadow-lg hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transform hover:-translate-y-1">
@@ -99,7 +102,7 @@ export default function Footer({ isAdminMode, initialFooter }: FooterProps) {
 
           {/* Column 3: Location Map */}
           <div className="flex flex-col space-y-6">
-            <h3 className="text-xl font-bold uppercase tracking-widest text-white border-b border-zinc-800 pb-2">Find Us</h3>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-white border-b border-zinc-800 pb-2">{locale === 'ar' ? 'موقعنا' : locale === 'fr' ? 'Trouvez-nous' : 'Find Us'}</h3>
             <div className="w-full h-48 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-inner">
               {footerState.mapEmbedUrl ? (
                 <iframe 
@@ -129,19 +132,24 @@ export default function Footer({ isAdminMode, initialFooter }: FooterProps) {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-black text-white uppercase mb-6">Edit Footer Settings</h3>
             
+            {/* Language Edit Tabs */}
+            <div className="flex gap-2 mb-6 border-b border-zinc-800 pb-2">
+              {(['en', 'fr', 'ar'] as const).map(l => (
+                <button key={l} onClick={() => setEditLocale(l)} className={`px-4 py-2 font-bold uppercase text-xs rounded-t-lg transition-colors ${editLocale === l ? 'bg-zinc-800 text-white border-b-2 border-red-500' : 'text-zinc-500 hover:text-zinc-300'}`}>Editing: {l}</button>
+              ))}
+            </div>
+
             <div className="space-y-6 mb-6">
               
               <div className="bg-zinc-950 p-4 border border-zinc-800 rounded-lg">
                 <h4 className="text-white font-bold mb-4 uppercase tracking-widest text-sm border-b border-zinc-800 pb-2">Gym Info</h4>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Address</label>
-                    <textarea value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" />
-                  </div>
-                  <div>
+                <div className="mb-4">
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Address Text ({editLocale})</label>
+                  <textarea value={formData.address[editLocale]} onChange={(e) => setFormData({...formData, address: {...formData.address, [editLocale]: e.target.value}})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" rows={2} dir={editLocale === 'ar' ? 'rtl' : 'ltr'} />
+                </div>
+                <div>
                     <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">General Phone Number</label>
                     <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" />
-                  </div>
                 </div>
               </div>
 

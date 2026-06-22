@@ -1,67 +1,119 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ScheduleProps {
   isAdminMode: boolean;
+  initialSchedule?: any[];
+  sectionTitle?: any;
+  locale?: 'en' | 'fr' | 'ar';
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+const DAY_TRANSLATIONS: Record<string, any> = {
+  "Monday": { en: "Monday", fr: "Lundi", ar: "الاثنين" },
+  "Tuesday": { en: "Tuesday", fr: "Mardi", ar: "الثلاثاء" },
+  "Wednesday": { en: "Wednesday", fr: "Mercredi", ar: "الأربعاء" },
+  "Thursday": { en: "Thursday", fr: "Jeudi", ar: "الخميس" },
+  "Friday": { en: "Friday", fr: "Vendredi", ar: "الجمعة" },
+  "Saturday": { en: "Saturday", fr: "Samedi", ar: "السبت" },
+  "Sunday": { en: "Sunday", fr: "Dimanche", ar: "الأحد" }
+};
+
+const FILTER_TRANSLATIONS: Record<string, any> = {
+  "Mixed": { en: "🥊 Men / Mixed Sessions", fr: "🥊 Hommes / Sessions Mixtes", ar: "🥊 للرجال / حصص مختلطة" },
+  "Women Only": { en: "🚺 Women-Only Sessions", fr: "🚺 Sessions Femmes Uniquement", ar: "🚺 حصص للسيدات فقط" },
+  "No classes": { en: "No classes scheduled for", fr: "Aucun cours programmé pour", ar: "لا توجد حصص مبرمجة ليوم" },
+  "Time to recover": { en: "Time to recover!", fr: "C'est l'heure de récupérer !", ar: "حان وقت التعافي!" }
+};
+
 const INITIAL_SCHEDULE = [
-  { id: 1, day: "Monday", time: "18:00 - 19:30", name: "MMA Advanced", target: "Mixed" },
-  { id: 2, day: "Monday", time: "19:30 - 21:00", name: "BJJ Fundamentals", target: "Mixed" },
-  { id: 3, day: "Monday", time: "17:00 - 18:00", name: "Women's Kickboxing", target: "Women Only" },
-  { id: 4, day: "Tuesday", time: "18:00 - 19:30", name: "Muay Thai Sparring", target: "Men" },
-  { id: 5, day: "Tuesday", time: "19:30 - 20:30", name: "Women's CrossFit", target: "Women Only" },
-  { id: 6, day: "Wednesday", time: "18:00 - 19:30", name: "No-Gi Grappling", target: "Mixed" },
-  { id: 7, day: "Thursday", time: "18:00 - 19:30", name: "MMA Fundamentals", target: "Mixed" },
-  { id: 8, day: "Thursday", time: "19:30 - 20:30", name: "Women's Lutte", target: "Women Only" },
-  { id: 9, day: "Friday", time: "18:00 - 19:30", name: "Open Mat", target: "Mixed" },
-  { id: 10, day: "Saturday", time: "10:00 - 12:00", name: "Competition Prep", target: "Invite Only" },
+  { id: 1, day: "Monday", time: "18:00 - 19:30", name: "MMA Advanced", target: "Mixed" }
 ];
 
-export default function Schedule({ isAdminMode }: ScheduleProps) {
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, locale = 'en' }: ScheduleProps) {
+  const [schedule, setSchedule] = useState(initialSchedule || INITIAL_SCHEDULE);
+  
+  useEffect(() => {
+    if (initialSchedule) setSchedule(initialSchedule);
+  }, [initialSchedule]);
   
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [sessionFilter, setSessionFilter] = useState("Mixed"); // "Mixed" or "Women Only"
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ day: "Monday", time: "", name: "", target: "Mixed" });
+  const [editLocale, setEditLocale] = useState<'en'|'fr'|'ar'>('en');
+  const [formData, setFormData] = useState({ 
+    day: "Monday", 
+    time: { en: "", fr: "", ar: "" }, 
+    name: { en: "", fr: "", ar: "" }, 
+    target: { en: "Mixed", fr: "Mixte", ar: "مختلط" } 
+  });
 
+  // Filter relies on the English key for target checking since we mapped it internally
+  // In the DB, target is now an object, so we check if the en version contains "Women Only"
   const classesToday = schedule.filter(c => {
     if (c.day !== selectedDay) return false;
-    if (sessionFilter === "Women Only") return c.target === "Women Only";
-    return c.target !== "Women Only";
+    const isWomenOnly = (typeof c.target === 'object' ? c.target.en : c.target) === "Women Only";
+    if (sessionFilter === "Women Only") return isWomenOnly;
+    return !isWomenOnly;
   });
+
+  const saveToDB = async (newSchedule: any[]) => {
+    try {
+      const token = localStorage.getItem("bb_admin_auth_token");
+      await fetch('/api/gym-data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ schedule: newSchedule })
+      });
+    } catch (err) { console.error("Failed to save to DB"); }
+  };
 
   const handleDelete = (id: number) => {
     if (confirm("Are you sure you want to delete this class?")) {
-      setSchedule(schedule.filter(c => c.id !== id));
+      const newSchedule = schedule.filter(c => c.id !== id);
+      setSchedule(newSchedule);
+      saveToDB(newSchedule);
     }
   };
 
   const openEditModal = (cls: any) => {
     setEditingId(cls.id);
-    setFormData({ day: cls.day, time: cls.time, name: cls.name, target: cls.target });
+    setFormData({ 
+      day: cls.day, 
+      time: typeof cls.time === 'object' ? cls.time : { en: cls.time, fr: cls.time, ar: cls.time }, 
+      name: typeof cls.name === 'object' ? cls.name : { en: cls.name, fr: cls.name, ar: cls.name }, 
+      target: typeof cls.target === 'object' ? cls.target : { en: cls.target, fr: cls.target, ar: cls.target } 
+    });
+    setEditLocale('en');
     setIsModalOpen(true);
   };
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ day: selectedDay, time: "", name: "", target: sessionFilter === "Women Only" ? "Women Only" : "Mixed" });
+    setFormData({ 
+      day: selectedDay, 
+      time: { en: "", fr: "", ar: "" }, 
+      name: { en: "", fr: "", ar: "" }, 
+      target: sessionFilter === "Women Only" ? { en: "Women Only", fr: "Femmes Uniquement", ar: "للسيدات فقط" } : { en: "Mixed", fr: "Mixte", ar: "مختلط" } 
+    });
+    setEditLocale('en');
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
+    let newSchedule;
     if (editingId) {
-      setSchedule(schedule.map(c => c.id === editingId ? { ...c, ...formData } : c));
+      newSchedule = schedule.map(c => c.id === editingId ? { ...c, ...formData } : c);
     } else {
-      setSchedule([...schedule, { id: Date.now(), ...formData }]);
+      newSchedule = [...schedule, { id: Date.now(), ...formData }];
     }
+    setSchedule(newSchedule);
     setIsModalOpen(false);
+    saveToDB(newSchedule);
   };
 
   return (
@@ -70,7 +122,7 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
         
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">
-            Weekly Training <span className="text-red-600">Schedule</span>
+            {sectionTitle ? (typeof sectionTitle === 'object' ? sectionTitle[locale] : sectionTitle) : <>Weekly Training <span className="text-red-600">Schedule</span></>}
           </h2>
           <div className="w-24 h-1 bg-red-600 mx-auto mt-6"></div>
         </div>
@@ -90,7 +142,7 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
                   : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white border border-zinc-800"
               }`}
             >
-              {day}
+              {DAY_TRANSLATIONS[day][locale]}
             </button>
           ))}
         </div>
@@ -105,7 +157,7 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
                 : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
             }`}
           >
-            🥊 Men / Mixed Sessions
+            {FILTER_TRANSLATIONS["Mixed"][locale]}
           </button>
           <button
             onClick={() => setSessionFilter("Women Only")}
@@ -115,7 +167,7 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
                 : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
             }`}
           >
-            🚺 Women-Only Sessions
+            {FILTER_TRANSLATIONS["Women Only"][locale]}
           </button>
         </div>
 
@@ -128,10 +180,10 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
                 className="relative bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col justify-between hover:border-red-600/50 transition-colors"
               >
                 <div>
-                  <div className="text-red-500 font-bold mb-1 tracking-widest text-sm">{cls.time}</div>
-                  <h3 className="text-xl font-black text-white uppercase mb-2">{cls.name}</h3>
+                  <div className="text-red-500 font-bold mb-1 tracking-widest text-sm">{typeof cls.time === 'object' ? cls.time[locale] : cls.time}</div>
+                  <h3 className="text-xl font-black text-white uppercase mb-2">{typeof cls.name === 'object' ? cls.name[locale] : cls.name}</h3>
                   <div className="inline-block bg-zinc-800 text-zinc-300 text-xs font-bold px-3 py-1 rounded uppercase tracking-wider border border-zinc-700">
-                    Target: {cls.target}
+                    {locale === 'ar' ? 'الفئة:' : locale === 'fr' ? 'Cible:' : 'Target:'} {typeof cls.target === 'object' ? cls.target[locale] : cls.target}
                   </div>
                 </div>
 
@@ -150,7 +202,7 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
             ))
           ) : (
             <div className="col-span-full py-12 text-center bg-zinc-900/50 border border-zinc-800/50 rounded-lg">
-              <span className="text-zinc-500 font-medium text-lg italic">No classes scheduled for {selectedDay}. Time to recover!</span>
+              <span className="text-zinc-500 font-medium text-lg italic">{FILTER_TRANSLATIONS["No classes"][locale]} {DAY_TRANSLATIONS[selectedDay][locale]}. {FILTER_TRANSLATIONS["Time to recover"][locale]}</span>
             </div>
           )}
         </div>
@@ -159,7 +211,7 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
         {isAdminMode && (
           <div className="mt-8 flex justify-center">
             <button onClick={openAddModal} className="bg-zinc-900 border-2 border-dashed border-zinc-700 text-zinc-400 hover:text-white hover:border-red-600 hover:bg-zinc-800 transition-all px-8 py-4 rounded-lg font-bold flex items-center gap-3">
-              <span className="text-2xl">+</span> Add Class to {selectedDay}
+              <span className="text-2xl">+</span> Add Class to {DAY_TRANSLATIONS[selectedDay][locale]}
             </button>
           </div>
         )}
@@ -172,14 +224,27 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
                 {editingId ? "Edit Class" : "Add Class"}
               </h3>
               
+              <div className="flex gap-2 mb-4">
+                {(['en', 'fr', 'ar'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setEditLocale(lang)}
+                    className={`px-3 py-1 text-xs font-bold uppercase rounded ${editLocale === lang ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Class Name</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Class Name ({editLocale})</label>
                   <input 
                     type="text" 
-                    value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                    value={(formData.name as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, name: {...formData.name, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -190,33 +255,30 @@ export default function Schedule({ isAdminMode }: ScheduleProps) {
                       onChange={e => setFormData({...formData, day: e.target.value})}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
                     >
-                      {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                      {DAYS.map(d => <option key={d} value={d}>{DAY_TRANSLATIONS[d][locale]}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Time</label>
+                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Time ({editLocale})</label>
                     <input 
                       type="text" 
                       placeholder="e.g. 18:00 - 19:30"
-                      value={formData.time} 
-                      onChange={e => setFormData({...formData, time: e.target.value})} 
+                      value={(formData.time as any)[editLocale] || ''} 
+                      onChange={e => setFormData({...formData, time: {...formData.time, [editLocale]: e.target.value}})} 
                       className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                      dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Target Audience</label>
-                  <select 
-                    value={formData.target} 
-                    onChange={e => setFormData({...formData, target: e.target.value})}
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Target Audience ({editLocale})</label>
+                  <input 
+                    type="text" 
+                    value={(formData.target as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, target: {...formData.target, [editLocale]: e.target.value}})}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
-                  >
-                    <option value="Mixed">Mixed</option>
-                    <option value="Men">Men Only</option>
-                    <option value="Women Only">Women Only</option>
-                    <option value="Kids">Kids</option>
-                    <option value="Invite Only">Invite Only</option>
-                  </select>
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
+                  />
                 </div>
               </div>
 

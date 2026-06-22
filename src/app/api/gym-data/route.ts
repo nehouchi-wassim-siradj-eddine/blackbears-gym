@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readDB } from '../../../../lib/db';
+import { readDB } from '@/lib/db';
 
 export async function GET() {
   const data = await readDB();

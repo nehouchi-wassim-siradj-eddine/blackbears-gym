@@ -7,15 +7,18 @@ interface HeroProps {
   isAdminMode: boolean;
   headerState: any;
   setHeaderState: (val: any) => void;
+  locale: 'en' | 'fr' | 'ar';
 }
 
-export default function Hero({ isAdminMode, headerState, setHeaderState }: HeroProps) {
+export default function Hero({ isAdminMode, headerState, setHeaderState, locale }: HeroProps) {
   const colors = getColorClasses(themeConfig.primaryColor);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ ...headerState });
+  const [formData, setFormData] = useState(headerState ? JSON.parse(JSON.stringify(headerState)) : null);
+  const [editLocale, setEditLocale] = useState<'en'|'fr'|'ar'>('en');
 
   const handleOpenModal = () => {
-    setFormData({ ...headerState });
+    setFormData(JSON.parse(JSON.stringify(headerState)));
+    setEditLocale(locale);
     setIsModalOpen(true);
   };
 
@@ -90,11 +93,11 @@ export default function Hero({ isAdminMode, headerState, setHeaderState }: HeroP
       <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
         
         <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-tight mb-6 drop-shadow-lg whitespace-pre-line">
-          {headerState.heroHeadline}
+          {headerState?.heroHeadline?.[locale]}
         </h1>
         
         <p className="text-lg sm:text-xl md:text-2xl text-zinc-300 font-medium max-w-3xl mb-10 drop-shadow-md whitespace-pre-line">
-          {headerState.heroSubtitle}
+          {headerState?.heroSubtitle?.[locale]}
         </p>
         
         <button 
@@ -109,7 +112,7 @@ export default function Hero({ isAdminMode, headerState, setHeaderState }: HeroP
           transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 text-white
           ${colors.bg} ${colors.hoverBg}
         `}>
-          Join Now
+          {locale === 'ar' ? 'انضم الآن' : locale === 'fr' ? 'Rejoindre' : 'Join Now'}
         </button>
 
       </div>
@@ -120,6 +123,19 @@ export default function Hero({ isAdminMode, headerState, setHeaderState }: HeroP
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-black text-white uppercase mb-6">Edit Header & Hero</h3>
             
+            {/* Language Edit Tabs */}
+            <div className="flex gap-2 mb-6 border-b border-zinc-800 pb-2">
+              {(['en', 'fr', 'ar'] as const).map(l => (
+                <button
+                  key={l}
+                  onClick={() => setEditLocale(l)}
+                  className={`px-4 py-2 font-bold uppercase text-xs rounded-t-lg transition-colors ${editLocale === l ? 'bg-zinc-800 text-white border-b-2 border-red-500' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  Editing: {l}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-6 mb-6">
               
               <div className="bg-zinc-950 p-4 border border-zinc-800 rounded-lg">
@@ -133,8 +149,8 @@ export default function Hero({ isAdminMode, headerState, setHeaderState }: HeroP
                 </div>
                 {formData.isAnnouncementActive && (
                   <div>
-                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Announcement Text</label>
-                    <input type="text" value={formData.announcementText} onChange={(e) => setFormData({...formData, announcementText: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" />
+                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Announcement Text ({editLocale})</label>
+                    <input type="text" value={formData.announcementText[editLocale]} onChange={(e) => setFormData({...formData, announcementText: { ...formData.announcementText, [editLocale]: e.target.value }})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" dir={editLocale === 'ar' ? 'rtl' : 'ltr'} />
                   </div>
                 )}
               </div>
@@ -142,12 +158,12 @@ export default function Hero({ isAdminMode, headerState, setHeaderState }: HeroP
               <div className="bg-zinc-950 p-4 border border-zinc-800 rounded-lg">
                 <h4 className="text-white font-bold mb-4 uppercase tracking-widest text-sm border-b border-zinc-800 pb-2">Hero Typography</h4>
                 <div className="mb-4">
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Headline</label>
-                  <textarea value={formData.heroHeadline} onChange={(e) => setFormData({...formData, heroHeadline: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" rows={2} />
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Headline ({editLocale})</label>
+                  <textarea value={formData.heroHeadline[editLocale]} onChange={(e) => setFormData({...formData, heroHeadline: { ...formData.heroHeadline, [editLocale]: e.target.value }})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" rows={2} dir={editLocale === 'ar' ? 'rtl' : 'ltr'} />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Subtitle</label>
-                  <textarea value={formData.heroSubtitle} onChange={(e) => setFormData({...formData, heroSubtitle: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" rows={2} />
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Subtitle ({editLocale})</label>
+                  <textarea value={formData.heroSubtitle[editLocale]} onChange={(e) => setFormData({...formData, heroSubtitle: { ...formData.heroSubtitle, [editLocale]: e.target.value }})} className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600" rows={2} dir={editLocale === 'ar' ? 'rtl' : 'ltr'} />
                 </div>
               </div>
 

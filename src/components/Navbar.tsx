@@ -8,10 +8,20 @@ interface NavbarProps {
   setIsAdminEditMode: (val: boolean) => void;
   headerState: any;
   isAuth: boolean;
+  locale: 'en' | 'fr' | 'ar';
+  setLocale: (val: 'en' | 'fr' | 'ar') => void;
 }
 
-export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerState, isAuth }: NavbarProps) {
+export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerState, isAuth, locale, setLocale }: NavbarProps) {
   const colors = getColorClasses(themeConfig.primaryColor);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const navLinks = {
+    en: ['Programs', 'Schedule', 'Pricing', 'Coaches'],
+    fr: ['Programmes', 'Planning', 'Tarifs', 'Coachs'],
+    ar: ['البرامج', 'الجدول', 'الأسعار', 'المدربين']
+  };
+  const navIds = ['programs', 'schedule', 'pricing', 'coaches'];
 
   return (
     <>
@@ -31,9 +41,11 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
       {/* Admin Edit Overlay Placeholder */}
       {isAdminEditMode && (
         <div className="fixed top-20 right-4 z-50 bg-zinc-900 border border-zinc-800 p-4 rounded-lg shadow-xl max-w-sm">
-          <h3 className="text-lg font-bold text-white mb-2">Admin Edit State Active</h3>
+          <h3 className="text-lg font-bold text-white mb-2">
+            {locale === 'ar' ? 'وضع التعديل مفعل' : locale === 'fr' ? 'Mode Édition Actif' : 'Admin Edit State Active'}
+          </h3>
           <p className="text-sm text-zinc-400">
-            You are now in edit mode. Configurable elements could be editable here.
+            {locale === 'ar' ? 'أنت الآن في وضع التعديل. يمكنك تغيير العناصر القابلة للتخصيص هنا.' : locale === 'fr' ? 'Vous êtes maintenant en mode édition. Les éléments configurables peuvent être modifiés ici.' : 'You are now in edit mode. Configurable elements could be editable here.'}
           </p>
         </div>
       )}
@@ -41,7 +53,7 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
       {/* Emergency Top Bar */}
       {headerState.isAnnouncementActive && (
         <div className={`w-full py-2 px-4 text-center font-bold text-sm tracking-wide bg-red-700 text-white`}>
-          {headerState.announcementText}
+          {headerState?.announcementText?.[locale]}
         </div>
       )}
 
@@ -62,15 +74,28 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
 
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-8">
-              {['Programs', 'Schedule', 'Pricing', 'Coaches'].map((item) => (
+              {navLinks[locale].map((item, idx) => (
                 <a 
                   key={item} 
-                  href={`#${item.toLowerCase()}`}
+                  href={`#${navIds[idx]}`}
                   className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
                 >
                   {item}
                 </a>
               ))}
+              
+              {/* Language Selector */}
+              <div className="flex gap-2 bg-zinc-950 border border-zinc-800 rounded px-2 py-1">
+                {(['en', 'fr', 'ar'] as const).map(l => (
+                  <button 
+                    key={l}
+                    onClick={() => setLocale(l)}
+                    className={`text-xs font-bold uppercase ${locale === l ? 'text-red-500' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
               
               {isAuth && (
                 <button 
@@ -81,22 +106,78 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
                   }}
                   className="text-red-500 border border-red-500/30 hover:bg-red-950/30 hover:border-red-500 px-4 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
                 >
-                  Logout
+                  {locale === 'ar' ? 'تسجيل الخروج' : locale === 'fr' ? 'Déconnexion' : 'Logout'}
                 </button>
               )}
             </div>
 
             {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center">
-              <button className="text-zinc-400 hover:text-white focus:outline-none">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-zinc-400 hover:text-white focus:outline-none"
+              >
+                {isMobileMenuOpen ? (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
               </button>
             </div>
             
           </div>
         </div>
+
+        {/* Mobile Menu Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-zinc-950 border-b border-zinc-900 absolute top-full left-0 w-full shadow-2xl z-40">
+            <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
+              {navLinks[locale].map((item, idx) => (
+                <a 
+                  key={item} 
+                  href={`#${navIds[idx]}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-2 block border-b border-zinc-900"
+                >
+                  {item}
+                </a>
+              ))}
+              
+              <div className="pt-4 flex items-center justify-between">
+                <span className="text-zinc-500 font-bold uppercase text-xs">{locale === 'ar' ? 'اللغة' : locale === 'fr' ? 'Langue' : 'Language'}</span>
+                <div className="flex gap-2 bg-zinc-900 border border-zinc-800 rounded px-2 py-1">
+                  {(['en', 'fr', 'ar'] as const).map(l => (
+                    <button 
+                      key={l}
+                      onClick={() => { setLocale(l); setIsMobileMenuOpen(false); }}
+                      className={`text-xs font-bold uppercase ${locale === l ? 'text-red-500' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {isAuth && (
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem("bb_admin_auth_token");
+                    setIsAdminEditMode(false);
+                    setIsMobileMenuOpen(false);
+                    window.location.href = "/";
+                  }}
+                  className="w-full mt-4 text-red-500 border border-red-500/30 bg-red-950/20 hover:bg-red-500 hover:text-white px-4 py-3 rounded text-sm font-bold uppercase tracking-widest transition-all text-center"
+                >
+                  {locale === 'ar' ? 'تسجيل الخروج' : locale === 'fr' ? 'Déconnexion' : 'Logout'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
     </>
   );

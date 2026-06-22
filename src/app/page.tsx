@@ -10,6 +10,7 @@ import Pricing from "../components/Pricing";
 import Footer from "../components/Footer";
 
 export default function Home() {
+  const [locale, setLocale] = useState<'en'|'fr'|'ar'>('en');
   const [isAdminEditMode, setIsAdminEditMode] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
 
@@ -47,23 +48,26 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950">
+    <main className="min-h-screen bg-zinc-950" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar 
         isAdminEditMode={isAdminEditMode} 
         setIsAdminEditMode={setIsAdminEditMode} 
         headerState={headerState}
         isAuth={isAuth}
+        locale={locale}
+        setLocale={setLocale}
       />
       <Hero 
         isAdminMode={isAdminEditMode} 
         headerState={headerState} 
         setHeaderState={setHeaderState} 
+        locale={locale}
       />
-      <Programs isAdminMode={isAdminEditMode} />
-      <Schedule isAdminMode={isAdminEditMode} />
-      <Coaches isAdminMode={isAdminEditMode} />
-      <Pricing isAdminMode={isAdminEditMode} initialPlans={dbData?.plans} />
-      <Footer isAdminMode={isAdminEditMode} initialFooter={dbData?.footerState} />
+      <Programs isAdminMode={isAdminEditMode} initialPrograms={dbData?.programs} sectionTitle={dbData?.sectionTitles?.programs} locale={locale} />
+      <Schedule isAdminMode={isAdminEditMode} initialSchedule={dbData?.schedule} sectionTitle={dbData?.sectionTitles?.schedule} locale={locale} />
+      <Coaches isAdminMode={isAdminEditMode} initialCoaches={dbData?.coaches} sectionTitle={dbData?.sectionTitles?.coaches} locale={locale} />
+      <Pricing isAdminMode={isAdminEditMode} initialPlans={dbData?.plans} sectionTitle={dbData?.sectionTitles?.pricing} locale={locale} />
+      <Footer isAdminMode={isAdminEditMode} initialFooter={dbData?.footerState} locale={locale} />
     </main>
   );
 }

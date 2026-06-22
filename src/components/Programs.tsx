@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ProgramsProps {
   isAdminMode: boolean;
+  initialPrograms?: any[];
+  sectionTitle?: any;
+  locale?: 'en' | 'fr' | 'ar';
 }
 
 const INITIAL_PROGRAMS = [
@@ -37,42 +40,80 @@ const INITIAL_PROGRAMS = [
   }
 ];
 
-export default function Programs({ isAdminMode }: ProgramsProps) {
-  const [programs, setPrograms] = useState(INITIAL_PROGRAMS);
+export default function Programs({ isAdminMode, initialPrograms, sectionTitle, locale = 'en' }: ProgramsProps) {
+  const [programs, setPrograms] = useState(initialPrograms || INITIAL_PROGRAMS);
+  
+  useEffect(() => {
+    if (initialPrograms) setPrograms(initialPrograms);
+  }, [initialPrograms]);
   
   // Admin Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ title: "", description: "", detailedInfo: "", image: "" });
+  const [editLocale, setEditLocale] = useState<'en'|'fr'|'ar'>('en');
+  const [formData, setFormData] = useState({ 
+    title: { en: "", fr: "", ar: "" }, 
+    description: { en: "", fr: "", ar: "" }, 
+    detailedInfo: { en: "", fr: "", ar: "" }, 
+    image: "" 
+  });
 
   // User Details Modal State
   const [selectedProgram, setSelectedProgram] = useState<any | null>(null);
 
+  const saveToDB = async (newPrograms: any[]) => {
+    try {
+      const token = localStorage.getItem("bb_admin_auth_token");
+      await fetch('/api/gym-data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ programs: newPrograms })
+      });
+    } catch (err) { console.error("Failed to save to DB"); }
+  };
+
   const handleDelete = (id: number) => {
     if (confirm("Are you sure you want to delete this discipline?")) {
-      setPrograms(programs.filter(p => p.id !== id));
+      const newPrograms = programs.filter(p => p.id !== id);
+      setPrograms(newPrograms);
+      saveToDB(newPrograms);
     }
   };
 
   const openEditModal = (prog: any) => {
     setEditingId(prog.id);
-    setFormData({ title: prog.title, description: prog.description, detailedInfo: prog.detailedInfo || "", image: prog.image });
+    setFormData({ 
+      title: typeof prog.title === 'object' ? prog.title : { en: prog.title, fr: prog.title, ar: prog.title }, 
+      description: typeof prog.description === 'object' ? prog.description : { en: prog.description, fr: prog.description, ar: prog.description }, 
+      detailedInfo: typeof prog.detailedInfo === 'object' ? prog.detailedInfo : { en: prog.detailedInfo || "", fr: prog.detailedInfo || "", ar: prog.detailedInfo || "" }, 
+      image: prog.image 
+    });
+    setEditLocale('en');
     setIsModalOpen(true);
   };
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ title: "", description: "", detailedInfo: "", image: "" });
+    setFormData({ 
+      title: { en: "", fr: "", ar: "" }, 
+      description: { en: "", fr: "", ar: "" }, 
+      detailedInfo: { en: "", fr: "", ar: "" }, 
+      image: "" 
+    });
+    setEditLocale('en');
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
+    let newPrograms;
     if (editingId) {
-      setPrograms(programs.map(p => p.id === editingId ? { ...p, ...formData } : p));
+      newPrograms = programs.map(p => p.id === editingId ? { ...p, ...formData } : p);
     } else {
-      setPrograms([...programs, { id: Date.now(), ...formData }]);
+      newPrograms = [...programs, { id: Date.now(), ...formData }];
     }
+    setPrograms(newPrograms);
     setIsModalOpen(false);
+    saveToDB(newPrograms);
   };
 
   return (
@@ -81,7 +122,7 @@ export default function Programs({ isAdminMode }: ProgramsProps) {
         
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">
-            Our Combat <span className="text-red-600">Disciplines</span>
+            {sectionTitle ? (typeof sectionTitle === 'object' ? sectionTitle[locale] : sectionTitle) : <>Our Combat <span className="text-red-600">Disciplines</span></>}
           </h2>
           <div className="w-24 h-1 bg-red-600 mx-auto mt-6"></div>
         </div>
@@ -101,14 +142,14 @@ export default function Programs({ isAdminMode }: ProgramsProps) {
 
               {/* Content */}
               <div className="p-8 flex-1 flex flex-col">
-                <h3 className="text-2xl font-bold text-white uppercase mb-3">{prog.title}</h3>
-                <p className="text-zinc-400 mb-6 flex-1">{prog.description}</p>
+                <h3 className="text-2xl font-bold text-white uppercase mb-3">{typeof prog.title === 'object' ? prog.title[locale] : prog.title}</h3>
+                <p className="text-zinc-400 mb-6 flex-1">{typeof prog.description === 'object' ? prog.description[locale] : prog.description}</p>
                 
                 <button 
                   onClick={() => setSelectedProgram(prog)}
                   className="text-red-500 font-bold uppercase tracking-widest text-sm hover:text-white transition-colors text-left"
                 >
-                  Learn More &rarr;
+                  {locale === 'ar' ? 'تعرف على المزيد' : locale === 'fr' ? 'En Savoir Plus' : 'Learn More'} &rarr;
                 </button>
               </div>
 
@@ -151,12 +192,12 @@ export default function Programs({ isAdminMode }: ProgramsProps) {
               <img src={selectedProgram.image} alt={selectedProgram.title} className="w-full h-64 object-cover" />
               
               <div className="p-8 overflow-y-auto">
-                <h3 className="text-3xl font-black text-white uppercase mb-4">{selectedProgram.title}</h3>
-                <p className="text-lg text-zinc-300 mb-6 font-medium">{selectedProgram.description}</p>
+                <h3 className="text-3xl font-black text-white uppercase mb-4">{typeof selectedProgram.title === 'object' ? selectedProgram.title[locale] : selectedProgram.title}</h3>
+                <p className="text-lg text-zinc-300 mb-6 font-medium">{typeof selectedProgram.description === 'object' ? selectedProgram.description[locale] : selectedProgram.description}</p>
                 
                 <div className="bg-zinc-950 border border-zinc-800 p-5 rounded-lg mb-8">
                   <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-3">Detailed Info / Rules</h4>
-                  <p className="text-zinc-400 whitespace-pre-line leading-relaxed">{selectedProgram.detailedInfo}</p>
+                  <p className="text-zinc-400 whitespace-pre-line leading-relaxed">{typeof selectedProgram.detailedInfo === 'object' ? selectedProgram.detailedInfo[locale] : selectedProgram.detailedInfo}</p>
                 </div>
                 
                 <button 
@@ -183,32 +224,46 @@ export default function Programs({ isAdminMode }: ProgramsProps) {
                 {editingId ? "Edit Discipline" : "Add Discipline"}
               </h3>
               
+              <div className="flex gap-2 mb-4">
+                {(['en', 'fr', 'ar'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setEditLocale(lang)}
+                    className={`px-3 py-1 text-xs font-bold uppercase rounded ${editLocale === lang ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Title</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Title ({editLocale})</label>
                   <input 
                     type="text" 
-                    value={formData.title} 
-                    onChange={e => setFormData({...formData, title: e.target.value})} 
+                    value={(formData.title as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, title: {...formData.title, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Short Description</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Short Description ({editLocale})</label>
                   <textarea 
-                    value={formData.description} 
-                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                    value={(formData.description as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, description: {...formData.description, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
                     rows={2}
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Detailed Info / Rules</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Detailed Info / Rules ({editLocale})</label>
                   <textarea 
-                    value={formData.detailedInfo} 
-                    onChange={e => setFormData({...formData, detailedInfo: e.target.value})} 
+                    value={(formData.detailedInfo as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, detailedInfo: {...formData.detailedInfo, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
                     rows={4}
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div>

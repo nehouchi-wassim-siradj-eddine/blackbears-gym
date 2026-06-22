@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { writeDB } from '../../../../../lib/db';
+import { writeDB } from '@/lib/db';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_black_bears_key_2026';

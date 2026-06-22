@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface CoachesProps {
   isAdminMode: boolean;
+  initialCoaches?: any[];
+  sectionTitle?: any;
+  locale?: 'en' | 'fr' | 'ar';
 }
 
 const INITIAL_COACHES = [
@@ -12,38 +15,73 @@ const INITIAL_COACHES = [
   { id: 3, name: "Coach Sarah", role: "CrossFit & Conditioning Lead", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1000&auto=format&fit=crop" }
 ];
 
-export default function Coaches({ isAdminMode }: CoachesProps) {
-  const [coaches, setCoaches] = useState(INITIAL_COACHES);
+export default function Coaches({ isAdminMode, initialCoaches, sectionTitle, locale = 'en' }: CoachesProps) {
+  const [coaches, setCoaches] = useState(initialCoaches || INITIAL_COACHES);
+  
+  useEffect(() => {
+    if (initialCoaches) setCoaches(initialCoaches);
+  }, [initialCoaches]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "", role: "", image: "" });
+  const [editLocale, setEditLocale] = useState<'en'|'fr'|'ar'>('en');
+  const [formData, setFormData] = useState({ 
+    name: { en: "", fr: "", ar: "" }, 
+    role: { en: "", fr: "", ar: "" }, 
+    image: "" 
+  });
+
+  const saveToDB = async (newCoaches: any[]) => {
+    try {
+      const token = localStorage.getItem("bb_admin_auth_token");
+      await fetch('/api/gym-data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ coaches: newCoaches })
+      });
+    } catch (err) { console.error("Failed to save to DB"); }
+  };
 
   const handleDelete = (id: number) => {
     if (confirm("Are you sure you want to delete this coach?")) {
-      setCoaches(coaches.filter(c => c.id !== id));
+      const newCoaches = coaches.filter(c => c.id !== id);
+      setCoaches(newCoaches);
+      saveToDB(newCoaches);
     }
   };
 
   const openEditModal = (coach: any) => {
     setEditingId(coach.id);
-    setFormData({ name: coach.name, role: coach.role, image: coach.image });
+    setFormData({ 
+      name: typeof coach.name === 'object' ? coach.name : { en: coach.name, fr: coach.name, ar: coach.name }, 
+      role: typeof coach.role === 'object' ? coach.role : { en: coach.role, fr: coach.role, ar: coach.role }, 
+      image: coach.image 
+    });
+    setEditLocale('en');
     setIsModalOpen(true);
   };
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", role: "", image: "" });
+    setFormData({ 
+      name: { en: "", fr: "", ar: "" }, 
+      role: { en: "", fr: "", ar: "" }, 
+      image: "" 
+    });
+    setEditLocale('en');
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
+    let newCoaches;
     if (editingId) {
-      setCoaches(coaches.map(c => c.id === editingId ? { ...c, ...formData } : c));
+      newCoaches = coaches.map(c => c.id === editingId ? { ...c, ...formData } : c);
     } else {
-      setCoaches([...coaches, { id: Date.now(), ...formData }]);
+      newCoaches = [...coaches, { id: Date.now(), ...formData }];
     }
+    setCoaches(newCoaches);
     setIsModalOpen(false);
+    saveToDB(newCoaches);
   };
 
   return (
@@ -52,7 +90,7 @@ export default function Coaches({ isAdminMode }: CoachesProps) {
         
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">
-            Meet Our Elite <span className="text-red-600">Coaches</span>
+            {sectionTitle ? (typeof sectionTitle === 'object' ? sectionTitle[locale] : sectionTitle) : <>Meet Our Elite <span className="text-red-600">Coaches</span></>}
           </h2>
           <div className="w-24 h-1 bg-red-600 mx-auto mt-6"></div>
         </div>
@@ -62,8 +100,8 @@ export default function Coaches({ isAdminMode }: CoachesProps) {
             <div key={coach.id} className="relative bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden group hover:border-red-600 transition-colors">
               <img src={coach.image} alt={coach.name} className="w-full h-80 object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
               <div className="p-6">
-                <h3 className="text-2xl font-black text-white uppercase mb-1">{coach.name}</h3>
-                <p className="text-zinc-400 font-medium">{coach.role}</p>
+                <h3 className="text-2xl font-black text-white uppercase mb-1">{typeof coach.name === 'object' ? coach.name[locale] : coach.name}</h3>
+                <p className="text-zinc-400 font-medium">{typeof coach.role === 'object' ? coach.role[locale] : coach.role}</p>
               </div>
 
               {isAdminMode && (
@@ -96,23 +134,36 @@ export default function Coaches({ isAdminMode }: CoachesProps) {
                 {editingId ? "Edit Coach" : "Add Coach"}
               </h3>
               
+              <div className="flex gap-2 mb-4">
+                {(['en', 'fr', 'ar'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setEditLocale(lang)}
+                    className={`px-3 py-1 text-xs font-bold uppercase rounded ${editLocale === lang ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Name</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Name ({editLocale})</label>
                   <input 
                     type="text" 
-                    value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                    value={(formData.name as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, name: {...formData.name, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Role</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Role ({editLocale})</label>
                   <input 
                     type="text" 
-                    value={formData.role} 
-                    onChange={e => setFormData({...formData, role: e.target.value})} 
+                    value={(formData.role as any)[editLocale] || ''} 
+                    onChange={e => setFormData({...formData, role: {...formData.role, [editLocale]: e.target.value}})} 
                     className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                    dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
                 <div>
