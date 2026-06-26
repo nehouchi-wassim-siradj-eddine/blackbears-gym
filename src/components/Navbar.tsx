@@ -59,7 +59,7 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
       )}
 
       {/* Main Navbar */}
-      <nav className="w-full bg-zinc-950 border-b border-zinc-900 sticky top-0 z-40">
+      <nav className="w-full bg-zinc-950 border-b border-zinc-900 sticky top-0 z-[100]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             
@@ -138,17 +138,23 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
         {isMobileMenuOpen && (
           <div className="md:hidden bg-zinc-950 border-b border-zinc-900 absolute top-full left-0 w-full shadow-2xl z-40">
             <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
-              {navLinks[locale].map((item, idx) => (
-                <Link 
-                  key={item} 
-                  href={navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`}
-                  prefetch={true}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-2 block border-b border-zinc-900"
-                >
-                  {item}
-                </Link>
-              ))}
+              {navLinks[locale].map((item, idx) => {
+                const target = navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`;
+                return (
+                  <Link 
+                    key={item} 
+                    href={target}
+                    prefetch={true}
+                    onClick={(e) => {
+                      // Allow Link to navigate instantly, then close menu slightly after to prevent freezing
+                      setTimeout(() => setIsMobileMenuOpen(false), 150);
+                    }}
+                    className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-3 block w-full border-b border-zinc-900 cursor-pointer"
+                  >
+                    {item}
+                  </Link>
+                );
+              })}
               
               <div className="pt-4 flex items-center justify-between">
                 <span className="text-zinc-500 font-bold uppercase text-xs">{locale === 'ar' ? 'اللغة' : locale === 'fr' ? 'Langue' : 'Language'}</span>
