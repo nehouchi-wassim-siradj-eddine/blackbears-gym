@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { themeConfig, getColorClasses } from "../config/theme";
 
 interface NavbarProps {
@@ -75,13 +76,14 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-8">
               {navLinks[locale].map((item, idx) => (
-                <a 
+                <Link 
                   key={item} 
                   href={navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`}
+                  prefetch={navIds[idx] === 'shop' ? true : undefined}
                   className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
                 >
                   {item}
-                </a>
+                </Link>
               ))}
               
               {/* Language Selector */}
@@ -137,14 +139,15 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
           <div className="md:hidden bg-zinc-950 border-b border-zinc-900 absolute top-full left-0 w-full shadow-2xl z-40">
             <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
               {navLinks[locale].map((item, idx) => (
-                <a 
+                <Link 
                   key={item} 
                   href={navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`}
+                  prefetch={true}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-2 block border-b border-zinc-900"
                 >
                   {item}
-                </a>
+                </Link>
               ))}
               
               <div className="pt-4 flex items-center justify-between">

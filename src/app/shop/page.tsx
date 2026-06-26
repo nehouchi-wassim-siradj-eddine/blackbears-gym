@@ -55,7 +55,12 @@ export default function ShopPage() {
       />
       
       <div className="pt-20">
-        <Shop isAdminMode={isAdminEditMode} initialProducts={dbData?.products} locale={locale} />
+        <Shop 
+          isAdminMode={isAdminEditMode} 
+          initialProducts={dbData?.products} 
+          initialCategories={dbData?.sectionTitles?.shopCategories} 
+          locale={locale} 
+        />
       </div>
 
       <Footer isAdminMode={isAdminEditMode} initialFooter={dbData?.footerState} locale={locale} />

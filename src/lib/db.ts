@@ -1,14 +1,15 @@
 import { supabase } from './supabaseClient';
+import { unstable_cache, unstable_noStore } from 'next/cache';
 
-export async function readDB() {
+export const readCachedDB = unstable_cache(
+  async () => {
   try {
-    const [appStateRes, plansRes, programsRes, coachesRes, scheduleRes, productsRes] = await Promise.all([
+    const [appStateRes, plansRes, programsRes, coachesRes, scheduleRes] = await Promise.all([
       supabase.from('app_state').select('*').eq('id', 1).maybeSingle(),
       supabase.from('plans').select('*').order('id'),
       supabase.from('programs').select('*').order('id'),
       supabase.from('coaches').select('*').order('id'),
-      supabase.from('schedule').select('*').order('id'),
-      supabase.from('products').select('*').order('id')
+      supabase.from('schedule').select('*').order('id')
     ]);
 
     if (appStateRes.error) console.error("Error reading app_state:", appStateRes.error);
@@ -16,7 +17,6 @@ export async function readDB() {
     if (programsRes.error) console.error("Error reading programs:", programsRes.error);
     if (coachesRes.error) console.error("Error reading coaches:", coachesRes.error);
     if (scheduleRes.error) console.error("Error reading schedule:", scheduleRes.error);
-    if (productsRes.error) console.error("Error reading products:", productsRes.error);
 
     const plans = (plansRes.data || []).map((p: any) => ({
       id: p.id,
@@ -35,14 +35,6 @@ export async function readDB() {
       image: p.image
     }));
 
-    const products = (productsRes.data || []).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      image: p.image
-    }));
-
     return {
       headerState: appStateRes.data?.header_state || {},
       footerState: appStateRes.data?.footer_state || {},
@@ -50,13 +42,85 @@ export async function readDB() {
       plans,
       programs,
       coaches: coachesRes.data || [],
-      schedule: scheduleRes.data || [],
-      products
+      schedule: scheduleRes.data || []
     };
   } catch (error) {
     console.error("Error reading from Supabase:", error);
     return null;
   }
+}, ['db-cache-v3-pure-layout'], { tags: ['core-data'], revalidate: 60 });
+
+export async function readDB() {
+  unstable_noStore();
+  const cachedData = await readCachedDB() || {
+    headerState: {}, footerState: {}, sectionTitles: {},
+    plans: [], programs: [], coaches: [], schedule: []
+  };
+
+  let products: any[] = [];
+  try {
+    const productsRes = await supabase.from('products').select('id, name, description, price, image, category, phone').order('id');
+    if (productsRes.error) {
+      console.error("Error reading products:", productsRes.error);
+    } else {
+      products = (productsRes.data || []).map((p: any) => {
+        let parsedImages = [];
+        try {
+          parsedImages = JSON.parse(p.image);
+          if (!Array.isArray(parsedImages)) parsedImages = p.image ? [p.image] : [];
+        } catch (e) {
+          parsedImages = p.image ? [p.image] : [];
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          images: parsedImages,
+          category: p.category || 'Uncategorized',
+          phone: p.phone || ''
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Error reading products dynamically:", error);
+  }
+
+  return {
+    ...cachedData,
+    products
+  };
+}
+
+export async function readProduct(id: string) {
+  unstable_noStore();
+
+  let product = null;
+  try {
+    const { data, error } = await supabase.from('products').select('id, name, description, price, image, category, phone').eq('id', id).maybeSingle();
+    if (data) {
+      let parsedImages = [];
+      try {
+        parsedImages = JSON.parse(data.image);
+        if (!Array.isArray(parsedImages)) parsedImages = data.image ? [data.image] : [];
+      } catch (e) {
+        parsedImages = data.image ? [data.image] : [];
+      }
+      product = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        images: parsedImages,
+        category: data.category || 'Uncategorized',
+        phone: data.phone || ''
+      };
+    }
+  } catch (error) {
+    console.error("Error reading product dynamically:", error);
+  }
+
+  return product;
 }
 
 export async function writeDB(data: any) {
@@ -185,7 +249,9 @@ export async function writeDB(data: any) {
         name: p.name,
         description: p.description,
         price: p.price,
-        image: p.image
+        image: JSON.stringify(p.images || []),
+        category: p.category || 'Uncategorized',
+        phone: p.phone || ''
       }));
       const { data: existing, error: selErr } = await supabase.from('products').select('id');
       if (selErr) throw new Error(`Products Select Error: ${selErr.message}`);

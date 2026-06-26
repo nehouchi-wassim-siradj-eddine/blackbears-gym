@@ -98,7 +98,11 @@ export default function Coaches({ isAdminMode, initialCoaches, sectionTitle, loc
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {coaches.map(coach => (
             <div key={coach.id} className="relative bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden group hover:border-red-600 transition-colors">
-              <img src={coach.image} alt={coach.name} className="w-full h-80 object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+              <img 
+                src={coach.image || 'https://via.placeholder.com/150'} 
+                alt={typeof coach.name === 'object' ? coach.name[locale] : coach.name} 
+                className="w-full h-80 object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" 
+              />
               <div className="p-6">
                 <h3 className="text-2xl font-black text-white uppercase mb-1">{typeof coach.name === 'object' ? coach.name[locale] : coach.name}</h3>
                 <p className="text-zinc-400 font-medium">{typeof coach.role === 'object' ? coach.role[locale] : coach.role}</p>
