@@ -93,7 +93,7 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
                   <Link 
                     key={item} 
                     href={target}
-                    prefetch={true}
+                    prefetch={false}
                     className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
                   >
                     {item}
@@ -172,7 +172,7 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
                   <Link 
                     key={item} 
                     href={target}
-                    prefetch={true}
+                    prefetch={false}
                     onClick={() => {
                       setTimeout(() => setIsMobileMenuOpen(false), 150);
                     }}
