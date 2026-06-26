@@ -18,10 +18,16 @@ const INITIAL_FOOTER_STATE = {
 };
 
 export default function Footer({ isAdminMode, initialFooter, locale }: FooterProps) {
-  const [footerState, setFooterState] = useState(initialFooter || INITIAL_FOOTER_STATE);
+  const safeFooter = initialFooter && Object.keys(initialFooter).length > 0 
+    ? { ...INITIAL_FOOTER_STATE, ...initialFooter }
+    : INITIAL_FOOTER_STATE;
+
+  const [footerState, setFooterState] = useState(safeFooter);
   
   useEffect(() => {
-    if (initialFooter) setFooterState(initialFooter);
+    if (initialFooter && Object.keys(initialFooter).length > 0) {
+      setFooterState({ ...INITIAL_FOOTER_STATE, ...initialFooter });
+    }
   }, [initialFooter]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
