@@ -43,13 +43,16 @@ export default function Hero({ isAdminMode, headerState, setHeaderState, locale 
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
       const isVideo = file.type.startsWith("video/");
-      setFormData({
-        ...formData,
-        heroMediaUrl: url,
-        heroMediaType: isVideo ? "video" : "image"
-      });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({
+          ...formData,
+          heroMediaUrl: reader.result as string,
+          heroMediaType: isVideo ? "video" : "image"
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 

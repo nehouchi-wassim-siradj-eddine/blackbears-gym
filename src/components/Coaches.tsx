@@ -77,7 +77,7 @@ export default function Coaches({ isAdminMode, initialCoaches, sectionTitle, loc
     if (editingId) {
       newCoaches = coaches.map(c => c.id === editingId ? { ...c, ...formData } : c);
     } else {
-      newCoaches = [...coaches, { id: Date.now(), ...formData }];
+      newCoaches = [...coaches, { id: Math.floor(Math.random() * 1000000), ...formData }];
     }
     setCoaches(newCoaches);
     setIsModalOpen(false);

@@ -98,7 +98,7 @@ export default function Pricing({ isAdminMode, initialPlans, sectionTitle, local
     if (editingId) {
       newPlans = plans.map(p => p.id === editingId ? { ...p, ...formData } : p);
     } else {
-      newPlans = [...plans, { id: Date.now(), ...formData }];
+      newPlans = [...plans, { id: Math.floor(Math.random() * 1000000), ...formData }];
     }
     setPlans(newPlans);
     setIsModalOpen(false);
@@ -268,14 +268,13 @@ export default function Pricing({ isAdminMode, initialPlans, sectionTitle, local
                 <div className="space-y-4">
                   <button 
                     onClick={() => {
-                      let phoneClean = selectedPlanForRegistration?.coachPhone?.replace(/[^0-9+]/g, '') || "";
-                      if (phoneClean.startsWith('0')) {
-                        phoneClean = '213' + phoneClean.substring(1);
-                      } else if (phoneClean.startsWith('+0')) {
-                        phoneClean = '213' + phoneClean.substring(2);
-                      }
-                      const message = `Hi! I want to ask about the ${selectedPlanForRegistration?.title?.[locale]}.`;
-                      window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
+                      const rawPhone = selectedPlanForRegistration?.coachPhone?.replace(/[^0-9+]/g, '') || "";
+                      let waPhone = rawPhone;
+                      if (waPhone.startsWith('0')) waPhone = '213' + waPhone.substring(1);
+                      if (waPhone.startsWith('+')) waPhone = waPhone.substring(1);
+                      
+                      const message = `Hi! I want to ask about the ${selectedPlanForRegistration?.title?.[locale] || 'membership'}.`;
+                      window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
                       setSelectedPlanForRegistration(null);
                     }}
                     className="flex items-center justify-center gap-3 w-full py-4 rounded-xl font-bold uppercase tracking-widest border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 group"
@@ -285,7 +284,13 @@ export default function Pricing({ isAdminMode, initialPlans, sectionTitle, local
                   </button>
 
                   <a 
-                    href={`tel:${selectedPlanForRegistration?.coachPhone?.replace(/[^0-9+]/g, '')}`}
+                    href={`tel:${(() => {
+                      const rawPhone = selectedPlanForRegistration?.coachPhone?.replace(/[^0-9+]/g, '') || "";
+                      let callPhone = rawPhone;
+                      if (callPhone.startsWith('0')) callPhone = '+213' + callPhone.substring(1);
+                      if (!callPhone.startsWith('+')) callPhone = '+' + callPhone;
+                      return callPhone;
+                    })()}`}
                     className="flex items-center justify-center gap-3 w-full py-4 rounded-xl font-bold uppercase tracking-widest border border-red-500/30 bg-red-950/20 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:-translate-y-0.5 group"
                   >
                     <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>

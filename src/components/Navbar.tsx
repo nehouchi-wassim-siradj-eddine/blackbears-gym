@@ -17,11 +17,11 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const navLinks = {
-    en: ['Programs', 'Schedule', 'Pricing', 'Coaches'],
-    fr: ['Programmes', 'Planning', 'Tarifs', 'Coachs'],
-    ar: ['البرامج', 'الجدول', 'الأسعار', 'المدربين']
+    en: ['Programs', 'Schedule', 'Pricing', 'Coaches', 'Shop'],
+    fr: ['Programmes', 'Planning', 'Tarifs', 'Coachs', 'Boutique'],
+    ar: ['البرامج', 'الجدول', 'الأسعار', 'المدربين', 'المتجر']
   };
-  const navIds = ['programs', 'schedule', 'pricing', 'coaches'];
+  const navIds = ['programs', 'schedule', 'pricing', 'coaches', 'shop'];
 
   return (
     <>
@@ -77,7 +77,7 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
               {navLinks[locale].map((item, idx) => (
                 <a 
                   key={item} 
-                  href={`#${navIds[idx]}`}
+                  href={navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`}
                   className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
                 >
                   {item}
@@ -139,7 +139,7 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
               {navLinks[locale].map((item, idx) => (
                 <a 
                   key={item} 
-                  href={`#${navIds[idx]}`}
+                  href={navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-2 block border-b border-zinc-900"
                 >

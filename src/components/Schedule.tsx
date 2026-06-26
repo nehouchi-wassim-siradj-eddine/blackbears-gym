@@ -6,6 +6,7 @@ interface ScheduleProps {
   isAdminMode: boolean;
   initialSchedule?: any[];
   sectionTitle?: any;
+  fullSectionTitles?: any;
   locale?: 'en' | 'fr' | 'ar';
 }
 
@@ -32,7 +33,7 @@ const INITIAL_SCHEDULE = [
   { id: 1, day: "Monday", time: "18:00 - 19:30", name: "MMA Advanced", target: "Mixed" }
 ];
 
-export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, locale = 'en' }: ScheduleProps) {
+export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, fullSectionTitles, locale = 'en' }: ScheduleProps) {
   const [schedule, setSchedule] = useState(initialSchedule || INITIAL_SCHEDULE);
   
   useEffect(() => {
@@ -41,6 +42,28 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
   
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [sessionFilter, setSessionFilter] = useState("Mixed"); // "Mixed" or "Women Only"
+  const [sportFilter, setSportFilter] = useState("All");
+
+  const defaultSportFilters = {
+    "Mixed": ["MMA", "BJJ", "Kickboxing", "Muay Thai", "CrossFit", "Boxing"],
+    "Women Only": ["Kickboxing", "CrossFit", "Lutte", "Fitness"]
+  };
+
+  const [sportFiltersConfig, setSportFiltersConfig] = useState<any>(
+    fullSectionTitles?.sportFilters || defaultSportFilters
+  );
+
+  useEffect(() => {
+    if (fullSectionTitles?.sportFilters) {
+      setSportFiltersConfig(fullSectionTitles.sportFilters);
+    }
+  }, [fullSectionTitles]);
+
+  const currentSportButtons = ["All", ...(sportFiltersConfig[sessionFilter] || [])];
+
+  useEffect(() => {
+    setSportFilter("All");
+  }, [sessionFilter]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -52,13 +75,65 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
     target: { en: "Mixed", fr: "Mixte", ar: "مختلط" } 
   });
 
+  // Admin Config Modal State
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterFormData, setFilterFormData] = useState({ category: "Mixed", sports: "" });
+
+  const openFilterModal = () => {
+    setFilterFormData({
+      category: "Mixed",
+      sports: (sportFiltersConfig["Mixed"] || []).join(", ")
+    });
+    setIsFilterModalOpen(true);
+  };
+
+  const handleFilterFormCategoryChange = (cat: string) => {
+    setFilterFormData({
+      category: cat,
+      sports: (sportFiltersConfig[cat] || []).join(", ")
+    });
+  };
+
+  const saveFilterConfig = async () => {
+    const updatedConfig = {
+      ...sportFiltersConfig,
+      [filterFormData.category]: filterFormData.sports.split(",").map((s: string) => s.trim()).filter((s: string) => s)
+    };
+    setSportFiltersConfig(updatedConfig);
+    setIsFilterModalOpen(false);
+
+    try {
+      const token = localStorage.getItem("bb_admin_auth_token");
+      const newSectionTitles = { ...fullSectionTitles, sportFilters: updatedConfig };
+      await fetch('/api/gym-data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ sectionTitles: newSectionTitles })
+      });
+    } catch (err) { console.error("Failed to save filters"); }
+  };
+
   // Filter relies on the English key for target checking since we mapped it internally
   // In the DB, target is now an object, so we check if the en version contains "Women Only"
   const classesToday = schedule.filter(c => {
     if (c.day !== selectedDay) return false;
+    
     const isWomenOnly = (typeof c.target === 'object' ? c.target.en : c.target) === "Women Only";
-    if (sessionFilter === "Women Only") return isWomenOnly;
-    return !isWomenOnly;
+    const passTargetFilter = sessionFilter === "Women Only" ? isWomenOnly : !isWomenOnly;
+    if (!passTargetFilter) return false;
+
+    if (sportFilter !== "All") {
+      const className = typeof c.name === 'object' ? c.name.en : c.name;
+      if (!className.toLowerCase().includes(sportFilter.toLowerCase())) return false;
+    }
+    
+    return true;
+  }).sort((a, b) => {
+    const timeA = typeof a.time === 'object' ? a.time.en : a.time;
+    const timeB = typeof b.time === 'object' ? b.time.en : b.time;
+    const startA = timeA?.split(' - ')[0] || "00:00";
+    const startB = timeB?.split(' - ')[0] || "00:00";
+    return startA.localeCompare(startB);
   });
 
   const saveToDB = async (newSchedule: any[]) => {
@@ -109,10 +184,11 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
     if (editingId) {
       newSchedule = schedule.map(c => c.id === editingId ? { ...c, ...formData } : c);
     } else {
-      newSchedule = [...schedule, { id: Date.now(), ...formData }];
+      newSchedule = [...schedule, { id: Math.floor(Math.random() * 1000000), ...formData }];
     }
     setSchedule(newSchedule);
     setIsModalOpen(false);
+    setSportFilter("All");
     saveToDB(newSchedule);
   };
 
@@ -148,7 +224,7 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
         </div>
 
         {/* Target Audience Filter Row */}
-        <div className="flex justify-center gap-4 mb-10 flex-wrap">
+        <div className="flex justify-center gap-4 mb-6 flex-wrap">
           <button
             onClick={() => setSessionFilter("Mixed")}
             className={`px-5 py-2 rounded-md font-bold uppercase tracking-wider text-sm transition-colors border-2 ${
@@ -169,6 +245,31 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
           >
             {FILTER_TRANSLATIONS["Women Only"][locale]}
           </button>
+        </div>
+
+        {/* Sport Filter Row */}
+        <div className="flex justify-center gap-3 mb-10 flex-wrap relative">
+          {currentSportButtons.map(sport => (
+            <button
+              key={sport}
+              onClick={() => setSportFilter(sport)}
+              className={`px-4 py-1.5 rounded-full font-bold uppercase tracking-wider text-xs transition-colors border ${
+                sportFilter === sport
+                  ? "bg-red-600 border-red-500 text-white shadow-[0_0_10px_rgba(220,38,38,0.3)]"
+                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600"
+              }`}
+            >
+              {sport === "All" && locale === 'fr' ? 'Tous' : sport === "All" && locale === 'ar' ? 'الكل' : sport}
+            </button>
+          ))}
+          {isAdminMode && (
+            <button 
+              onClick={openFilterModal} 
+              className="px-3 py-1.5 rounded-full font-bold uppercase tracking-wider text-xs bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-700 border border-zinc-700 border-dashed transition-all"
+            >
+              ⚙️ Edit Filters
+            </button>
+          )}
         </div>
 
         {/* Schedule Grid */}
@@ -247,7 +348,7 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
                     dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Day</label>
                     <select 
@@ -258,16 +359,33 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
                       {DAYS.map(d => <option key={d} value={d}>{DAY_TRANSLATIONS[d][locale]}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Time ({editLocale})</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 18:00 - 19:30"
-                      value={(formData.time as any)[editLocale] || ''} 
-                      onChange={e => setFormData({...formData, time: {...formData.time, [editLocale]: e.target.value}})} 
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
-                      dir={editLocale === 'ar' ? 'rtl' : 'ltr'}
-                    />
+                  <div className="flex gap-2">
+                    <div className="w-1/2">
+                      <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Start Time</label>
+                      <input 
+                        type="time" 
+                        value={((formData.time as any).en || "").split(' - ')[0] || ""} 
+                        onChange={e => {
+                          const currentEnd = ((formData.time as any).en || "").split(' - ')[1] || "";
+                          const newTime = `${e.target.value} - ${currentEnd}`;
+                          setFormData({...formData, time: { en: newTime, fr: newTime, ar: newTime }});
+                        }} 
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600 [color-scheme:dark]"
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">End Time</label>
+                      <input 
+                        type="time" 
+                        value={((formData.time as any).en || "").split(' - ')[1] || ""} 
+                        onChange={e => {
+                          const currentStart = ((formData.time as any).en || "").split(' - ')[0] || "";
+                          const newTime = `${currentStart} - ${e.target.value}`;
+                          setFormData({...formData, time: { en: newTime, fr: newTime, ar: newTime }});
+                        }} 
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600 [color-scheme:dark]"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -285,6 +403,47 @@ export default function Schedule({ isAdminMode, initialSchedule, sectionTitle, l
               <div className="flex justify-end gap-3">
                 <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded font-bold text-sm bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700">Cancel</button>
                 <button onClick={handleSave} className="px-4 py-2 rounded font-bold text-sm bg-red-600 text-white hover:bg-red-700">Save</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Filter Config Modal */}
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
+              <h3 className="text-2xl font-black text-white uppercase mb-6">Configure Sport Filters</h3>
+              
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => handleFilterFormCategoryChange("Mixed")}
+                  className={`flex-1 py-2 text-xs font-bold uppercase rounded ${filterFormData.category === "Mixed" ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                >
+                  Mixed / Men
+                </button>
+                <button
+                  onClick={() => handleFilterFormCategoryChange("Women Only")}
+                  className={`flex-1 py-2 text-xs font-bold uppercase rounded ${filterFormData.category === "Women Only" ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                >
+                  Women Only
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Sports List (Comma Separated)</label>
+                <textarea 
+                  value={filterFormData.sports} 
+                  onChange={e => setFilterFormData({...filterFormData, sports: e.target.value})} 
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                  rows={4}
+                  placeholder="e.g. MMA, BJJ, Kickboxing"
+                />
+                <p className="text-zinc-500 text-xs mt-2 italic">These buttons will automatically appear when the "{filterFormData.category}" target is active.</p>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setIsFilterModalOpen(false)} className="px-4 py-2 rounded font-bold text-sm bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700">Cancel</button>
+                <button onClick={saveFilterConfig} className="px-4 py-2 rounded font-bold text-sm bg-red-600 text-white hover:bg-red-700">Save Config</button>
               </div>
             </div>
           </div>

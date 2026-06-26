@@ -109,7 +109,7 @@ export default function Programs({ isAdminMode, initialPrograms, sectionTitle, l
     if (editingId) {
       newPrograms = programs.map(p => p.id === editingId ? { ...p, ...formData } : p);
     } else {
-      newPrograms = [...programs, { id: Date.now(), ...formData }];
+      newPrograms = [...programs, { id: Math.floor(Math.random() * 1000000), ...formData }];
     }
     setPrograms(newPrograms);
     setIsModalOpen(false);
@@ -196,7 +196,9 @@ export default function Programs({ isAdminMode, initialPrograms, sectionTitle, l
                 <p className="text-lg text-zinc-300 mb-6 font-medium">{typeof selectedProgram.description === 'object' ? selectedProgram.description[locale] : selectedProgram.description}</p>
                 
                 <div className="bg-zinc-950 border border-zinc-800 p-5 rounded-lg mb-8">
-                  <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-3">Detailed Info / Rules</h4>
+                  <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-3">
+                    {locale === 'ar' ? 'معلومات مفصلة / القوانين' : locale === 'fr' ? 'Informations Détaillées / Règles' : 'Detailed Info / Rules'}
+                  </h4>
                   <p className="text-zinc-400 whitespace-pre-line leading-relaxed">{typeof selectedProgram.detailedInfo === 'object' ? selectedProgram.detailedInfo[locale] : selectedProgram.detailedInfo}</p>
                 </div>
                 
@@ -209,7 +211,7 @@ export default function Programs({ isAdminMode, initialPrograms, sectionTitle, l
                   }}
                   className="w-full py-4 rounded font-bold text-lg uppercase tracking-widest bg-red-600 text-white hover:bg-red-700 transition-colors shadow-[0_0_15px_rgba(220,38,38,0.4)]"
                 >
-                  📅 View Schedule Slots
+                  📅 {locale === 'ar' ? 'عرض أوقات التدريب' : locale === 'fr' ? 'Voir les Horaires d\'Entraînement' : 'View Schedule Slots'}
                 </button>
               </div>
             </div>
@@ -288,8 +290,11 @@ export default function Programs({ isAdminMode, initialPrograms, sectionTitle, l
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const url = URL.createObjectURL(file);
-                          setFormData({...formData, image: url});
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({...formData, image: reader.result as string});
+                          };
+                          reader.readAsDataURL(file);
                         }
                       }} 
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
