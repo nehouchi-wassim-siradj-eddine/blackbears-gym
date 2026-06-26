@@ -51,6 +51,7 @@ export const readCachedDB = unstable_cache(
 }, ['db-cache-v3-pure-layout'], { tags: ['core-data'], revalidate: 60 });
 
 export async function readDB() {
+  unstable_noStore();
   const cachedData = await readCachedDB() || {
     headerState: {}, footerState: {}, sectionTitles: {},
     plans: [], programs: [], coaches: [], schedule: []
@@ -92,6 +93,7 @@ export async function readDB() {
 }
 
 export async function readProduct(id: string) {
+  unstable_noStore();
 
   let product = null;
   try {
