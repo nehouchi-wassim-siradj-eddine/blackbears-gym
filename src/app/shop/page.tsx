@@ -3,6 +3,8 @@ import { readDB } from "../../lib/db";
 import ShopClient from "./ShopClient";
 
 // Server Component for Instant Loading
+export const revalidate = 3600;
+
 export default async function ShopPage() {
   // Fetch from database on the server
   const dbData = await readDB();
