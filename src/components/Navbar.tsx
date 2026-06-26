@@ -75,16 +75,31 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
 
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-8">
-              {navLinks[locale].map((item, idx) => (
-                <Link 
-                  key={item} 
-                  href={navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`}
-                  prefetch={navIds[idx] === 'shop' ? true : undefined}
-                  className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
-                >
-                  {item}
-                </Link>
-              ))}
+              {navLinks[locale].map((item, idx) => {
+                const target = navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`;
+                const isAnchor = target.startsWith('/#');
+                if (isAnchor) {
+                  return (
+                    <a 
+                      key={item} 
+                      href={target}
+                      className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
+                    >
+                      {item}
+                    </a>
+                  );
+                }
+                return (
+                  <Link 
+                    key={item} 
+                    href={target}
+                    prefetch={true}
+                    className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors"
+                  >
+                    {item}
+                  </Link>
+                );
+              })}
               
               {/* Language Selector */}
               <div className="flex gap-2 bg-zinc-950 border border-zinc-800 rounded px-2 py-1">
@@ -140,13 +155,25 @@ export default function Navbar({ isAdminEditMode, setIsAdminEditMode, headerStat
             <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
               {navLinks[locale].map((item, idx) => {
                 const target = navIds[idx] === 'shop' ? '/shop' : `/#${navIds[idx]}`;
+                const isAnchor = target.startsWith('/#');
+                if (isAnchor) {
+                  return (
+                    <a 
+                      key={item} 
+                      href={target}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-3 block w-full border-b border-zinc-900 cursor-pointer"
+                    >
+                      {item}
+                    </a>
+                  );
+                }
                 return (
                   <Link 
                     key={item} 
                     href={target}
                     prefetch={true}
-                    onClick={(e) => {
-                      // Allow Link to navigate instantly, then close menu slightly after to prevent freezing
+                    onClick={() => {
                       setTimeout(() => setIsMobileMenuOpen(false), 150);
                     }}
                     className="text-zinc-300 hover:text-red-500 font-semibold uppercase tracking-wider text-sm transition-colors py-3 block w-full border-b border-zinc-900 cursor-pointer"
